@@ -1,0 +1,768 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="theme-color" content="#0a1628"/>
+<title>Lexia Â· Rafael Freitas Advocacia</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>âï¸</text></svg>"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--navy:#0a1628;--navy-light:#0f1d35;--navy-mid:#142544;--gold:#d4af37;--gold-dim:rgba(212,175,55,.6);--gold-bg:rgba(212,175,55,.08);--text:#e2e8f0;--text-dim:#64748b;--text-mid:#94a3b8;--border:rgba(255,255,255,.07);--success:#10b981;--warning:#f59e0b;--danger:#ef4444;--info:#3b82f6}
+body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:var(--navy);color:var(--text);min-height:100vh;-webkit-tap-highlight-color:transparent}
+::-webkit-scrollbar{width:6px}::-webkit-scrollbar-thumb{background:var(--navy-mid);border-radius:3px}
+input,textarea,select{font-family:inherit}
+button{font-family:inherit;cursor:pointer}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+@keyframes pulse{0%,100%{opacity:.3}50%{opacity:1}}
+.fade-in{animation:fadeIn .3s ease both}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useEffect, useCallback, useRef, useMemo } = React;
+
+// âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// STORAGE UTILS
+// âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+const Storage = {
+  get(key, def) { try { const v = localStorage.getItem(`lexia_${key}`); return v ? JSON.parse(v) : def; } catch { return def; } },
+  set(key, val) { localStorage.setItem(`lexia_${key}`, JSON.stringify(val)); },
+  remove(key) { localStorage.removeItem(`lexia_${key}`); }
+};
+
+// âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// CONFIG & DATA
+// âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+const PROCESSOS_CONFIG = [
+  { id:"p1", numero:"0273721-19.2024.8.06.0001", numeroDatajud:"02737211920248060001", cliente:"Bradesco Auto/RE", confirmado:true },
+  { id:"p2", numero:"0211849-66.2025.8.06.0001", numeroDatajud:"02118496620258060001", cliente:"InventÃ¡rio â 10 Herdeiros", confirmado:true },
+  { id:"p3", numero:"3062925-62.2025.8.06.0001", numeroDatajud:"30629256220258060001", cliente:"Caso UniÃ£o EstÃ¡vel", confirmado:false },
+  { id:"p4", numero:"0202088-40.2024.8.06.0035", numeroDatajud:"02020884020248060035", cliente:"Eden Francis Sotto Mayor", confirmado:false },
+];
+
+const DATAJUD_KEY = "cDZHYzlZa0JadVREZDJCendQbXY6SkJlTzNjLV9TRENyQk1RdnFKZGRQdw==";
+const DATAJUD_URL = "https://api-publica.datajud.cnj.jus.br/api_publica_tjce/_search";
+
+// âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// ICONS (inline SVG)
+// âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+const Icons = {
+  processos: <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24"><path d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/></svg>,
+  tarefas: <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>,
+  financeiro: <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24"><path d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>,
+  config: <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24"><path d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><circle cx="12" cy="12" r="3"/></svg>,
+  plus: <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M12 5v14m-7-7h14"/></svg>,
+  trash: <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>,
+  edit: <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24"><path d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>,
+  whatsapp: <svg width="14" height="14" fill="currentColor" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>,
+  email: <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24"><path d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>,
+  bell: <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24"><path d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>,
+  menu: <svg width="24" height="24" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"/></svg>,
+  close: <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12"/></svg>,
+};
+
+// âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// UTILITY FUNCTIONS
+// âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+function genId() { return Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
+function formatDate(d) { if(!d) return "â"; return new Date(d).toLocaleDateString("pt-BR"); }
+function formatCurrency(v) { return new Intl.NumberFormat("pt-BR",{style:"currency",currency:"BRL"}).format(v||0); }
+function daysUntil(date) { if(!date) return Infinity; return Math.ceil((new Date(date)-new Date())/(1000*60*60*24)); }
+function isOverdue(date) { return daysUntil(date) < 0; }
+function isToday(date) { return daysUntil(date) === 0; }
+
+// âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// NOTIFICATION SYSTEM
+// âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+function NotificationBadge({ count }) {
+  if(!count) return null;
+  return <span style={{position:"absolute",top:"-4px",right:"-4px",background:"var(--danger)",color:"#fff",fontSize:"0.6rem",width:"16px",height:"16px",borderRadius:"50%",display:"flex",alignItems:"center",justifyContent:"center",fontWeight:"bold"}}>{count}</span>;
+}
+
+// âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// MODAL COMPONENT
+// âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+function Modal({ title, onClose, children, width="520px" }) {
+  return (
+    <div onClick={onClose} style={{position:"fixed",inset:0,background:"rgba(3,8,20,.92)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:1000,backdropFilter:"blur(8px)",padding:"1rem"}}>
+      <div onClick={e=>e.stopPropagation()} className="fade-in" style={{background:"linear-gradient(145deg,#0d1a30,#080f1e)",border:"1px solid rgba(212,175,55,.3)",borderRadius:"16px",maxWidth:width,width:"100%",maxHeight:"90vh",overflow:"auto",padding:"1.5rem"}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"1.2rem"}}>
+          <h3 style={{color:"var(--gold)",fontSize:"0.95rem",fontWeight:"600"}}>{title}</h3>
+          <button onClick={onClose} style={{background:"none",border:"none",color:"var(--text-dim)",padding:"4px"}}>{Icons.close}</button>
+        </div>
+        {children}
+      </div>
+    </div>
+  );
+}
+
+// ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// INPUT COMPONENTS
+// âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+const inputStyle = {width:"100%",padding:"0.6rem 0.8rem",borderRadius:"8px",background:"rgba(255,255,255,.04)",border:"1px solid var(--border)",color:"var(--text)",fontSize:"0.82rem",outline:"none"};
+const labelStyle = {display:"block",fontSize:"0.7rem",color:"var(--text-mid)",marginBottom:"0.3rem",textTransform:"uppercase",letterSpacing:"0.05em"};
+const btnPrimary = {padding:"0.6rem 1.2rem",borderRadius:"8px",background:"linear-gradient(135deg,var(--gold),#9a7d0a)",border:"none",color:"#000",fontSize:"0.82rem",fontWeight:"600",cursor:"pointer"};
+const btnSecondary = {padding:"0.6rem 1.2rem",borderRadius:"8px",background:"rgba(255,255,255,.05)",border:"1px solid var(--border)",color:"var(--text-dim)",fontSize:"0.82rem",cursor:"pointer"};
+
+// âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// MONITOR DE PROCESSOS
+// âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+function MonitorProcessos() {
+  const [processos, setProcessos] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [selecionado, setSelecionado] = useState(null);
+  const [ultimaAtt, setUltimaAtt] = useState(null);
+
+  const consultar = useCallback(async () => {
+    setLoading(true);
+    const resultados = await Promise.all(
+      PROCESSOS_CONFIG.map(async (cfg) => {
+        try {
+          const resp = await fetch(DATAJUD_URL, {
+            method:"POST",
+            headers:{"Content-Type":"application/json","Authorization":`APIKey ${DATAJUD_KEY}`},
+            body:JSON.stringify({query:{term:{numeroProcesso:cfg.numeroDatajud}},size:1}),
+          });
+          if(resp.ok) {
+            const data = await resp.json();
+            const source = data?.hits?.hits?.[0]?._source;
+            if(source) {
+              const movs = (source.movimentos||[]).slice(0,6).map(m=>({
+                data: m.dataHora ? new Date(m.dataHora).toLocaleDateString("pt-BR") : "â",
+                nome: m.nome||"MovimentaÃ§Ã£o",
+                complemento: m.complementosTabelados?.map(c=>c.nome||c.descricao).filter(Boolean).join(", ")||"",
+              }));
+              return {...cfg, vara:source.orgaoJulgador?.nome||"â", classe:source.classe?.nome||"â", movimentos:movs, erro:null, fonte:"DataJud"};
+            }
+          }
+        } catch(e) {}
+        // Fallback cache
+        const cache = {
+          "02737211920248060001":{vara:"39Âª Vara CÃ­vel de Fortaleza",classe:"Procedimento Comum CÃ­vel",movimentos:[{data:"03/04/2025",nome:"PublicaÃ§Ã£o",complemento:""},{data:"21/01/2025",nome:"PublicaÃ§Ã£o",complemento:""}]},
+          "02118496620258060001":{vara:"2Âª Vara de SucessÃµes de Fortaleza",classe:"InventÃ¡rio",movimentos:[{data:"18/09/2025",nome:"PetiÃ§Ã£o",complemento:""},{data:"17/06/2025",nome:"Decurso de Prazo",complemento:""},{data:"23/04/2025",nome:"PetiÃ§Ã£o",complemento:""}]},
+        };
+        if(cache[cfg.numeroDatajud]) return {...cfg,...cache[cfg.numeroDatajud],erro:null,fonte:"cache"};
+        if(!cfg.confirmado) return {...cfg,vara:"Aguardando indexaÃ§Ã£o no DataJud",classe:"â",movimentos:[],erro:"pendente",fonte:null};
+        return {...cfg,vara:"â",classe:"â",movimentos:[],erro:"nÃ£o localizado",fonte:null};
+      })
+    );
+    setProcessos(resultados);
+    setUltimaAtt(new Date().toLocaleString("pt-BR",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"}));
+    setLoading(false);
+  }, []);
+
+  useEffect(()=>{consultar();},[]);
+
+  return (
+    <div className="fade-in">
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"1rem",flexWrap:"wrap",gap:"0.5rem"}}>
+        <div>
+          <h2 style={{fontSize:"1.1rem",color:"var(--text)"}}>Monitor de Processos</h2>
+          <p style={{fontSize:"0.72rem",color:"var(--text-dim)",marginTop:"0.2rem"}}>DataJud/CNJ Â· {processos.filter(p=>p.fonte).length} de {PROCESSOS_CONFIG.length} conectados {ultimaAtt && `Â· ${ultimaAtt}`}</p>
+        </div>
+        <button onClick={consultar} disabled={loading} style={{...btnPrimary,opacity:loading?.6:1,display:"flex",alignItems:"center",gap:"0.4rem"}}>
+          <span style={{display:"inline-block",animation:loading?"spin 1s linear infinite":"none"}}>â»</span>
+          {loading?"Consultando...":"Atualizar"}
+        </button>
+      </div>
+
+      <div style={{background:"var(--gold-bg)",border:"1px solid rgba(212,175,55,.18)",borderRadius:"10px",padding:"0.7rem 1rem",marginBottom:"1rem",fontSize:"0.73rem",color:"var(--text-mid)"}}>
+        â¹ï¸ Processos <strong style={{color:"var(--text)"}}>Bradesco</strong> e <strong style={{color:"var(--text)"}}>InventÃ¡rio</strong> confirmados no DataJud. Demais aguardam indexaÃ§Ã£o (processos recentes / comarcas do interior).
+      </div>
+
+      <div style={{display:"flex",flexDirection:"column",gap:"0.6rem"}}>
+        {(processos.length?processos:PROCESSOS_CONFIG.map(c=>({...c,movimentos:[],classe:"â",vara:"Carregando..."}))).map((proc,i)=>(
+          <div key={proc.id} className="fade-in" style={{background:"rgba(255,255,255,.03)",border:`1px solid ${selecionado===i?"rgba(212,175,55,.4)":"var(--border)"}`,borderRadius:"12px",overflow:"hidden",transition:"border-color .2s"}}>
+            <div onClick={()=>setSelecionado(selecionado===i?null:i)} style={{padding:"0.9rem 1.1rem",cursor:"pointer",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+              <div>
+                <div style={{display:"flex",gap:"0.4rem",alignItems:"center",flexWrap:"wrap",marginBottom:"0.2rem"}}>
+                  {proc.fonte==="DataJud"&&<span style={{background:"rgba(16,185,129,.1)",color:"var(--success)",fontSize:"0.58rem",padding:"0.1rem 0.5rem",borderRadius:"12px",border:"1px solid rgba(16,185,129,.25)"}}>â Ao vivo</span>}
+                  {proc.fonte==="cache"&&<span style={{background:"var(--gold-bg)",color:"var(--gold)",fontSize:"0.58rem",padding:"0.1rem 0.5rem",borderRadius:"12px",border:"1px solid rgba(212,175,55,.25)"}}>â Confirmado</span>}
+                  {proc.erro==="pendente"&&<span style={{background:"rgba(245,158,11,.1)",color:"var(--warning)",fontSize:"0.58rem",padding:"0.1rem 0.5rem",borderRadius:"12px",border:"1px solid rgba(245,158,11,.25)"}}>â³ Indexando</span>}
+                  {proc.classe&&proc.classe!=="â"&&<span style={{color:"var(--text-dim)",fontSize:"0.6rem"}}>{proc.classe}</span>}
+                </div>
+                <div style={{fontSize:"0.92rem",fontWeight:"500"}}>{proc.cliente}</div>
+                <div style={{fontSize:"0.65rem",color:"var(--text-dim)",fontFamily:"monospace",marginTop:"0.1rem"}}>{proc.numero}</div>
+                {proc.vara&&proc.vara!=="â"&&<div style={{fontSize:"0.66rem",color:"var(--text-dim)",marginTop:"0.05rem"}}>{proc.vara}</div>}
+              </div>
+              <div style={{textAlign:"right",flexShrink:0}}>
+                <div style={{color:proc.movimentos?.length?"var(--gold)":"var(--text-dim)",fontSize:"0.7rem"}}>{proc.movimentos?.length||0} mov.</div>
+                <span style={{color:"var(--text-dim)",fontSize:"0.8rem",transition:"transform .2s",display:"inline-block",transform:selecionado===i?"rotate(180deg)":"none"}}>â¾</span>
+              </div>
+            </div>
+            {selecionado===i&&(
+              <div style={{borderTop:"1px solid var(--border)",padding:"0.8rem 1.1rem"}}>
+                {proc.movimentos?.length>0 ? proc.movimentos.map((mov,j)=>(
+                  <div key={j} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"0.5rem 0.4rem",borderRadius:"8px",marginBottom:"0.2rem"}}>
+                    <div>
+                      <span style={{color:"var(--gold)",fontSize:"0.72rem",fontWeight:"500"}}>{mov.nome}</span>
+                      <span style={{color:"var(--text-dim)",fontSize:"0.65rem",marginLeft:"0.5rem"}}>{mov.data}</span>
+                      {mov.complemento&&<div style={{color:"var(--text-dim)",fontSize:"0.7rem",marginTop:"0.1rem"}}>{mov.complemento}</div>}
+                    </div>
+                  </div>
+                )) : <p style={{color:"var(--text-dim)",fontSize:"0.78rem"}}>{proc.erro==="pendente"?"â³ Aguardando indexaÃ§Ã£o no DataJud/CNJ.":"Nenhuma movimentaÃ§Ã£o encontrada."}</p>}
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// GESTÃO DE TAREFAS
+// âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+function GestaoTarefas() {
+  const [tarefas, setTarefas] = useState(()=>Storage.get("tarefas",[]));
+  const [modal, setModal] = useState(null);
+  const [filtro, setFiltro] = useState("todas");
+
+  useEffect(()=>{Storage.set("tarefas",tarefas);},[tarefas]);
+
+  const salvar = (t) => {
+    if(t.id) { setTarefas(prev=>prev.map(x=>x.id===t.id?t:x)); }
+    else { setTarefas(prev=>[{...t,id:genId(),criadoEm:new Date().toISOString()},...prev]); }
+    setModal(null);
+  };
+  const excluir = (id) => { setTarefas(prev=>prev.filter(x=>x.id!==id)); setModal(null); };
+  const toggleStatus = (id) => {
+    setTarefas(prev=>prev.map(x=>{
+      if(x.id!==id) return x;
+      const next = x.status==="pendente"?"em_andamento":x.status==="em_andamento"?"concluida":"pendente";
+      return {...x,status:next,concluidaEm:next==="concluida"?new Date().toISOString():null};
+    }));
+  };
+
+  const filtradas = tarefas.filter(t=>{
+    if(filtro==="todas") return true;
+    if(filtro==="pendente") return t.status==="pendente";
+    if(filtro==="em_andamento") return t.status==="em_andamento";
+    if(filtro==="concluida") return t.status==="concluida";
+    if(filtro==="vencidas") return t.status!=="concluida"&&isOverdue(t.prazo);
+    return true;
+  }).sort((a,b)=>{
+    if(a.status==="concluida"&&b.status!=="concluida") return 1;
+    if(b.status==="concluida"&&a.status!=="concluida") return -1;
+    if(a.prioridade==="alta"&&b.prioridade!=="alta") return -1;
+    if(!a.prazo) return 1; if(!b.prazo) return -1;
+    return new Date(a.prazo)-new Date(b.prazo);
+  });
+
+  const vencidas = tarefas.filter(t=>t.status!=="concluida"&&isOverdue(t.prazo)).length;
+
+  return (
+    <div className="fade-in">
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"1rem",flexWrap:"wrap",gap:"0.5rem"}}>
+        <div>
+          <h2 style={{fontSize:"1.1rem"}}>GestÃ£o de Tarefas</h2>
+          <p style={{fontSize:"0.72rem",color:"var(--text-dim)",marginTop:"0.2rem"}}>{tarefas.filter(t=>t.status!=="concluida").length} pendentes {vencidas>0&&<span style={{color:"var(--danger)"}}>Â· {vencidas} vencidas</span>}</p>
+        </div>
+        <button onClick={()=>setModal({status:"pendente",prioridade:"media",titulo:"",descricao:"",prazo:"",processoId:""})} style={{...btnPrimary,display:"flex",alignItems:"center",gap:"0.3rem"}}>{Icons.plus} Nova Tarefa</button>
+      </div>
+
+      <div style={{display:"flex",gap:"0.4rem",marginBottom:"1rem",flexWrap:"wrap"}}>
+        {[{k:"todas",l:"Todas"},{k:"pendente",l:"Pendentes"},{k:"em_andamento",l:"Em andamento"},{k:"concluida",l:"ConcluÃ­das"},{k:"vencidas",l:"Vencidas"}].map(f=>(
+          <button key={f.k} onClick={()=>setFiltro(f.k)} style={{padding:"0.35rem 0.7rem",borderRadius:"20px",border:`1px solid ${filtro===f.k?"rgba(212,175,55,.4)":"var(--border)"}`,background:filtro===f.k?"var(--gold-bg)":"transparent",color:filtro===f.k?"var(--gold)":"var(--text-dim)",fontSize:"0.7rem",cursor:"pointer"}}>{f.l}{f.k==="vencidas"&&vencidas>0?` (${vencidas})`:""}</button>
+        ))}
+      </div>
+
+      {filtradas.length===0 ? (
+        <div style={{textAlign:"center",padding:"3rem 1rem",color:"var(--text-dim)"}}>
+          <p style={{fontSize:"0.85rem"}}>Nenhuma tarefa {filtro!=="todas"?`com filtro "${filtro}"`:""}</p>
+          <p style={{fontSize:"0.72rem",marginTop:"0.3rem"}}>Clique em "Nova Tarefa" para comeÃ§ar</p>
+        </div>
+      ) : (
+        <div style={{display:"flex",flexDirection:"column",gap:"0.4rem"}}>
+          {filtradas.map(t=>{
+            const vencida = t.status!=="concluida"&&isOverdue(t.prazo);
+            const hoje = isToday(t.prazo);
+            return (
+              <div key={t.id} style={{background:"rgba(255,255,255,.03)",border:`1px solid ${vencida?"rgba(239,68,68,.3)":"var(--border)"}`,borderRadius:"10px",padding:"0.8rem 1rem",display:"flex",alignItems:"flex-start",gap:"0.7rem"}}>
+                <button onClick={()=>toggleStatus(t.id)} style={{marginTop:"0.1rem",width:"20px",height:"20px",borderRadius:"50%",border:`2px solid ${t.status==="concluida"?"var(--success)":t.status==="em_andamento"?"var(--gold)":"var(--text-dim)"}`,background:t.status==="concluida"?"var(--success)":"transparent",display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",flexShrink:0}}>
+                  {t.status==="concluida"&&<span style={{color:"#fff",fontSize:"0.65rem"}}>â</span>}
+                  {t.status==="em_andamento"&&<span style={{color:"var(--gold)",fontSize:"0.5rem"}}>â</span>}
+                </button>
+                <div style={{flex:1,minWidth:0}}>
+                  <div style={{display:"flex",gap:"0.4rem",alignItems:"center",flexWrap:"wrap"}}>
+                    <span style={{fontSize:"0.85rem",color:t.status==="concluida"?"var(--text-dim)":"var(--text)",textDecoration:t.status==="concluida"?"line-through":"none"}}>{t.titulo}</span>
+                    {t.prioridade==="alta"&&<span style={{fontSize:"0.55rem",background:"rgba(239,68,68,.1)",color:"var(--danger)",padding:"0.08rem 0.4rem",borderRadius:"10px",border:"1px solid rgba(239,68,68,.25)"}}>ALTA</span>}
+                  </div>
+                  {t.descricao&&<p style={{fontSize:"0.72rem",color:"var(--text-dim)",marginTop:"0.2rem"}}>{t.descricao}</p>}
+                  <div style={{display:"flex",gap:"0.6rem",marginTop:"0.3rem",flexWrap:"wrap"}}>
+                    {t.prazo&&<span style={{fontSize:"0.64rem",color:vencida?"var(--danger)":hoje?"var(--warning)":"var(--text-dim)"}}>ð {formatDate(t.prazo)} {vencida?"(VENCIDA)":hoje?"(HOJE)":""}</span>}
+                    {t.processoId&&<span style={{fontSize:"0.64rem",color:"var(--info)"}}>ð {PROCESSOS_CONFIG.find(p=>p.id===t.processoId)?.cliente||""}</span>}
+                  </div>
+                </div>
+                <button onClick={()=>setModal(t)} style={{background:"none",border:"none",color:"var(--text-dim)",padding:"4px",cursor:"pointer"}}>{Icons.edit}</button>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {modal&&(
+        <TarefaModal tarefa={modal} onSave={salvar} onDelete={modal.id?()=>excluir(modal.id):null} onClose={()=>setModal(null)}/>
+      )}
+    </div>
+  );
+}
+
+function TarefaModal({ tarefa, onSave, onDelete, onClose }) {
+  const [form, setForm] = useState(tarefa);
+  const upd = (k,v) => setForm(p=>({...p,[k]:v}));
+  return (
+    <Modal title={form.id?"Editar Tarefa":"Nova Tarefa"} onClose={onClose}>
+      <div style={{display:"flex",flexDirection:"column",gap:"0.9rem"}}>
+        <div><label style={labelStyle}>TÃ­tulo *</label><input value={form.titulo||""} onChange={e=>upd("titulo",e.target.value)} style={inputStyle} placeholder="Ex: Protocolar contestaÃ§Ã£o"/></div>
+        <div><label style={labelStyle}>DescriÃ§Ã£o</label><textarea value={form.descricao||""} onChange={e=>upd("descricao",e.target.value)} style={{...inputStyle,minHeight:"60px",resize:"vertical"}} placeholder="Detalhes opcionais"/></div>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"0.7rem"}}>
+          <div><label style={labelStyle}>Prazo</label><input type="date" value={form.prazo||""} onChange={e=>upd("prazo",e.target.value)} style={inputStyle}/></div>
+          <div><label style={labelStyle}>Prioridade</label><select value={form.prioridade||"media"} onChange={e=>upd("prioridade",e.target.value)} style={inputStyle}><option value="baixa">Baixa</option><option value="media">MÃ©dia</option><option value="alta">Alta</option></select></div>
+        </div>
+        <div><label style={labelStyle}>Processo vinculado</label><select value={form.processoId||""} onChange={e=>upd("processoId",e.target.value)} style={inputStyle}><option value="">Nenhum</option>{PROCESSOS_CONFIG.map(p=><option key={p.id} value={p.id}>{p.cliente} â {p.numero}</option>)}</select></div>
+        <div style={{display:"flex",gap:"0.6rem",justifyContent:"flex-end",marginTop:"0.5rem"}}>
+          {onDelete&&<button onClick={onDelete} style={{...btnSecondary,color:"var(--danger)",borderColor:"rgba(239,68,68,.3)",marginRight:"auto"}}>Excluir</button>}
+          <button onClick={onClose} style={btnSecondary}>Cancelar</button>
+          <button onClick={()=>form.titulo&&onSave(form)} style={{...btnPrimary,opacity:form.titulo?1:.5}}>Salvar</button>
+        </div>
+      </div>
+    </Modal>
+  );
+}
+
+// âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// MÃDULO FINANCEIRO
+// âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+function ModuloFinanceiro() {
+  const [cobrancas, setCobrancas] = useState(()=>Storage.get("cobrancas",[]));
+  const [modal, setModal] = useState(null);
+  const [filtro, setFiltro] = useState("todas");
+  const [msgModal, setMsgModal] = useState(null);
+
+  useEffect(()=>{Storage.set("cobrancas",cobrancas);},[cobrancas]);
+
+  const salvar = (c) => {
+    if(c.id) { setCobrancas(prev=>prev.map(x=>x.id===c.id?c:x)); }
+    else { setCobrancas(prev=>[{...c,id:genId(),criadoEm:new Date().toISOString()},...prev]); }
+    setModal(null);
+  };
+  const excluir = (id) => { setCobrancas(prev=>prev.filter(x=>x.id!==id)); setModal(null); };
+  const marcarPago = (id) => { setCobrancas(prev=>prev.map(x=>x.id===id?{...x,status:"pago",pagoEm:new Date().toISOString()}:x)); };
+
+  const filtradas = cobrancas.filter(c=>{
+    if(filtro==="todas") return true;
+    if(filtro==="pendente") return c.status==="pendente";
+    if(filtro==="vencida") return c.status==="pendente"&&isOverdue(c.vencimento);
+    if(filtro==="pago") return c.status==="pago";
+    return true;
+  }).sort((a,b)=>{
+    if(a.status==="pago"&&b.status!=="pago") return 1;
+    if(!a.vencimento) return 1; if(!b.vencimento) return -1;
+    return new Date(a.vencimento)-new Date(b.vencimento);
+  });
+
+  const totalPendente = cobrancas.filter(c=>c.status==="pendente").reduce((s,c)=>s+(parseFloat(c.valor)||0),0);
+  const totalRecebido = cobrancas.filter(c=>c.status==="pago").reduce((s,c)=>s+(parseFloat(c.valor)||0),0);
+  const vencidas = cobrancas.filter(c=>c.status==="pendente"&&isOverdue(c.vencimento));
+
+  const gerarMsgWhatsApp = (c) => {
+    const msg = `Prezado(a) ${c.clienteNome||"Cliente"},\n\nEspeÃ§o que esteja bem. Informo que a parcela referente aos honorÃ¡rios advocatÃ­cios no valor de ${formatCurrency(c.valor)} venceu em ${formatDate(c.vencimento)}.\n\nSolicito gentilmente a regularizaÃ§Ã£o do pagamento.\n\nPix: rafaelfreitassadv@gmail.com\n\nAtenciosamente,\nDr. Rafael Freitas\nOAB/CE 44.172`;
+    return msg;
+  };
+  const gerarMsgEmail = (c) => {
+    return `Assunto: Lembrete de Pagamento â HonorÃ¡rios AdvocatÃ­cios\n\nPrezado(a) ${c.clienteNome||"Cliente"},\n\nVimos, respeitosamente, lembrÃ¡-lo(a) da parcela de honorÃ¡rios no valor de ${formatCurrency(c.valor)}, com vencimento em ${formatDate(c.vencimento)}.\n\nPara sua conveniÃªncia, segue a chave Pix para pagamento:\nð§ rafaelfreitassadv@gmail.com\n\nCaso jÃ¡ tenha efetuado o pagamento, por favor desconsidere esta mensagem.\n\nAtenciosamente,\n\nRafael Freitas Mariano de Oliveira\nAdvogado â OAB/CE 44.172\nAv. Ministro JosÃ© AmÃ©rico, 326, Sl 711/712\nCambeba â Fortaleza/CE`;
+  };
+
+  return (
+    <div className="fade-in">
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"1rem",flexWrap:"wrap",gap:"0.5rem"}}>
+        <div>
+          <h2 style={{fontSize:"1.1rem"}}>Financeiro & CobranÃ§as</h2>
+          <p style={{fontSize:"0.72rem",color:"var(--text-dim)",marginTop:"0.2rem"}}>Controle de honorÃ¡rios e lembretes</p>
+        </div>
+        <button onClick={()=>setModal({status:"pendente",tipo:"honorario",valor:"",clienteNome:"",descricao:"",vencimento:"",processoId:"",telefone:"",email:""})} style={{...btnPrimary,display:"flex",alignItems:"center",gap:"0.3rem"}}>{Icons.plus} Nova CobranÃ§a</button>
+      </div>
+
+      {/* Resumo cards */}
+      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(150px,1fr))",gap:"0.6rem",marginBottom:"1rem"}}>
+        <div style={{background:"rgba(255,255,255,.03)",border:"1px solid var(--border)",borderRadius:"10px",padding:"0.8rem"}}>
+          <div style={{fontSize:"0.62rem",color:"var(--text-dim)",textTransform:"uppercase",letterSpacing:"0.08em"}}>A Receber</div>
+          <div style={{fontSize:"1.2rem",color:"var(--warning)",fontWeight:"bold",marginTop:"0.2rem"}}>{formatCurrency(totalPendente)}</div>
+        </div>
+        <div style={{background:"rgba(255,255,255,.03)",border:"1px solid var(--border)",borderRadius:"10px",padding:"0.8rem"}}>
+          <div style={{fontSize:"0.62rem",color:"var(--text-dim)",textTransform:"uppercase",letterSpacing:"0.08em"}}>Recebido</div>
+          <div style={{fontSize:"1.2rem",color:"var(--success)",fontWeight:"bold",marginTop:"0.2rem"}}>{formatCurrency(totalRecebido)}</div>
+        </div>
+        <div style={{background:vencidas.length?"rgba(239,68,68,.06)":"rgba(255,255,255,.03)",border:`1px solid ${vencidas.length?"rgba(239,68,68,.25)":"var(--border)"}`,borderRadius:"10px",padding:"0.8rem"}}>
+          <div style={{fontSize:"0.62rem",color:vencidas.length?"var(--danger)":"var(--text-dim)",textTransform:"uppercase",letterSpacing:"0.08em"}}>Vencidas</div>
+          <div style={{fontSize:"1.2rem",color:vencidas.length?"var(--danger)":"var(--text-dim)",fontWeight:"bold",marginTop:"0.2rem"}}>{vencidas.length}</div>
+        </div>
+      </div>
+
+      {/* Alertas de vencidas */}
+      {vencidas.length>0&&(
+        <div style={{background:"rgba(239,68,68,.06)",border:"1px solid rgba(239,68,68,.2)",borderRadius:"10px",padding:"0.7rem 1rem",marginBottom:"1rem",fontSize:"0.75rem",color:"var(--danger)"}}>
+          ð <strong>{vencidas.length} cobranÃ§a(s) vencida(s)!</strong> Envie lembretes para regularizar.
+        </div>
+      )}
+
+      <div style={{display:"flex",gap:"0.4rem",marginBottom:"1rem",flexWrap:"wrap"}}>
+        {[{k:"todas",l:"Todas"},{k:"pendente",l:"Pendentes"},{k:"vencida",l:"Vencidas"},{k:"pago",l:"Pagas"}].map(f=>(
+          <button key={f.k} onClick={()=>setFiltro(f.k)} style={{padding:"0.35rem 0.7rem",borderRadius:"20px",border:`1px solid ${filtro===f.k?"rgba(212,175,55,.4)":"var(--border)"}`,background:filtro===f.k?"var(--gold-bg)":"transparent",color:filtro===f.k?"var(--gold)":"var(--text-dim)",fontSize:"0.7rem",cursor:"pointer"}}>{f.l}</button>
+        ))}
+      </div>
+
+      {filtradas.length===0 ? (
+        <div style={{textAlign:"center",padding:"3rem 1rem",color:"var(--text-dim)"}}>
+          <p style={{fontSize:"0.85rem"}}>Nenhuma cobranÃ§a registrada</p>
+          <p style={{fontSize:"0.72rem",marginTop:"0.3rem"}}>Registre honorÃ¡rios e parcelas para controlar pagamentos</p>
+        </div>
+      ) : (
+        <div style={{display:"flex",flexDirection:"column",gap:"0.4rem"}}>
+          {filtradas.map(c=>{
+            const vencida = c.status==="pendente"&&isOverdue(c.vencimento);
+            const hoje = c.status==="pendente"&&isToday(c.vencimento);
+            return (
+              <div key={c.id} style={{background:"rgba(255,255,255,.03)",border:`1px solid ${vencida?"rgba(239,68,68,.3)":"var(--border)"}`,borderRadius:"10px",padding:"0.8rem 1rem"}}>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:"0.5rem"}}>
+                  <div style={{flex:1}}>
+                    <div style={{display:"flex",alignItems:"center",gap:"0.4rem",flexWrap:"wrap"}}>
+                      <span style={{fontSize:"0.88rem",fontWeight:"500"}}>{c.clienteNome||"Cliente"}</span>
+                      {c.status==="pago"&&<span style={{fontSize:"0.55rem",background:"rgba(16,185,129,.1)",color:"var(--success)",padding:"0.08rem 0.4rem",borderRadius:"10px"}}>PAGO</span>}
+                      {vencida&&<span style={{fontSize:"0.55rem",background:"rgba(239,68,68,.1)",color:"var(--danger)",padding:"0.08rem 0.4rem",borderRadius:"10px"}}>VENCIDA</span>}
+                      {hoje&&<span style={{fontSize:"0.55rem",background:"rgba(245,158,11,.1)",color:"var(--warning)",padding:"0.08rem 0.4rem",borderRadius:"10px"}}>VENCE HOJE</span>}
+                    </div>
+                    {c.descricao&&<p style={{fontSize:"0.72rem",color:"var(--text-dim)",marginTop:"0.15rem"}}>{c.descricao}</p>}
+                    <div style={{display:"flex",gap:"0.7rem",marginTop:"0.3rem",fontSize:"0.66rem",color:"var(--text-dim)",flexWrap:"wrap"}}>
+                      <span>ð° {formatCurrency(c.valor)}</span>
+                      {c.vencimento&&<span>ð {formatDate(c.vencimento)}</span>}
+                      {c.processoId&&<span>ð {PROCESSOS_CONFIG.find(p=>p.id===c.processoId)?.cliente||""}</span>}
+                    </div>
+                  </div>
+                  <div style={{display:"flex",gap:"0.3rem",flexShrink:0,flexWrap:"wrap"}}>
+                    {c.status==="pendente"&&(
+                      <>
+                        <button onClick={()=>marcarPago(c.id)} title="Marcar como pago" style={{background:"rgba(16,185,129,.1)",border:"1px solid rgba(16,185,129,.3)",color:"var(--success)",padding:"0.3rem 0.5rem",borderRadius:"6px",fontSize:"0.65rem",cursor:"pointer"}}>â Pago</button>
+                        <button onClick={()=>setMsgModal({tipo:"whatsapp",cobranca:c})} title="Lembrete WhatsApp" style={{background:"rgba(37,211,102,.08)",border:"1px solid rgba(37,211,102,.25)",color:"#25d366",padding:"0.3rem 0.4rem",borderRadius:"6px",cursor:"pointer"}}>{Icons.whatsapp}</button>
+                        <button onClick={()=>setMsgModal({tipo:"email",cobranca:c})} title="Lembrete Email" style={{background:"rgba(59,130,246,.08)",border:"1px solid rgba(59,130,246,.25)",color:"var(--info)",padding:"0.3rem 0.4rem",borderRadius:"6px",cursor:"pointer"}}>{Icons.email}</button>
+                      </>
+                    )}
+                    <button onClick={()=>setModal(c)} style={{background:"none",border:"none",color:"var(--text-dim)",padding:"0.3rem",cursor:"pointer"}}>{Icons.edit}</button>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {modal&&<CobrancaModal cobranca={modal} onSave={salvar} onDelete={modal.id?()=>excluir(modal.id):null} onClose={()=>setModal(null)}/>}
+      {msgModal&&<MensagemModal {...msgModal} onClose={()=>setMsgModal(null)} gerarWhatsApp={gerarMsgWhatsApp} gerarEmail={gerarMsgEmail}/>}
+    </div>
+  );
+}
+
+function CobrancaModal({ cobranca, onSave, onDelete, onClose }) {
+  const [form, setForm] = useState(cobranca);
+  const upd = (k,v) => setForm(p=>({...p,[k]:v}));
+  return (
+    <Modal title={form.id?"Editar CobranÃ§a":"Nova CobranÃ§a"} onClose={onClose}>
+      <div style={{display:"flex",flexDirection:"column",gap:"0.9rem"}}>
+        <div><label style={labelStyle}>Cliente *</label><input value={form.clienteNome||""} onChange={e=>upd("clienteNome",e.target.value)} style={inputStyle} placeholder="Nome do cliente"/></div>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"0.7rem"}}>
+          <div><label style={labelStyle}>Valor (R$) *</label><input type="number" step="0.01" value={form.valor||""} onChange={e=>upd("valor",e.target.value)} style={inputStyle} placeholder="0,00"/></div>
+          <div><label style={labelStyle}>Vencimento *</label><input type="date" value={form.vencimento||""} onChange={e=>upd("vencimento",e.target.value)} style={inputStyle}/></div>
+        </div>
+        <div><label style={labelStyle}>DescriÃ§Ã£o</label><input value={form.descricao||""} onChange={e=>upd("descricao",e.target.value)} style={inputStyle} placeholder="Ex: 2Âª parcela honorÃ¡rios"/></div>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"0.7rem"}}>
+          <div><label style={labelStyle}>Telefone (WhatsApp)</label><input value={form.telefone||""} onChange={e=>upd("telefone",e.target.value)} style={inputStyle} placeholder="85999999999"/></div>
+          <div><label style={labelStyle}>Email</label><input value={form.email||""} onChange={e=>upd("email",e.target.value)} style={inputStyle} placeholder="cliente@email.com"/></div>
+        </div>
+        <div><label style={labelStyle}>Processo vinculado</label><select value={form.processoId||""} onChange={e=>upd("processoId",e.target.value)} style={inputStyle}><option value="">Nenhum</option>{PROCESSOS_CONFIG.map(p=><option key={p.id} value={p.id}>{p.cliente}</option>)}</select></div>
+        <div style={{display:"flex",gap:"0.6rem",justifyContent:"flex-end",marginTop:"0.5rem"}}>
+          {onDelete&&<button onClick={onDelete} style={{...btnSecondary,color:"var(--danger)",borderColor:"rgba(239,68,68,.3)",marginRight:"auto"}}>Excluir</button>}
+          <button onClick={onClose} style={btnSecondary}>Cancelar</button>
+          <button onClick={()=>form.clienteNome&&form.valor&&onSave(form)} style={{...btnPrimary,opacity:form.clienteNome&&form.valor?1:.5}}>Salvar</button>
+        </div>
+      </div>
+    </Modal>
+  );
+}
+
+function MensagemModal({ tipo, cobranca, onClose, gerarWhatsApp, gerarEmail }) {
+  const msg = tipo==="whatsapp" ? gerarWhatsApp(cobranca) : gerarEmail(cobranca);
+  const copiar = () => { navigator.clipboard.writeText(msg); };
+  const enviarWhatsApp = () => {
+    const tel = (cobranca.telefone||"").replace(/\D/g,"");
+    if(tel) window.open(`https://wa.me/55${tel}?text=${encodeURIComponent(msg)}`,"_blank");
+    else alert("Telefone nÃ£o cadastrado para este cliente.");
+  };
+  const enviarEmail = () => {
+    const email = cobranca.email||"";
+    if(email) window.open(`mailto:${email}?subject=${encodeURIComponent("Lembrete de Pagamento â HonorÃ¡rios")}&body=${encodeURIComponent(msg)}`,"_blank");
+    else alert("Email nÃ£o cadastrado para este cliente.");
+  };
+
+  return (
+    <Modal title={tipo==="whatsapp"?"Lembrete via WhatsApp":"Lembrete via Email"} onClose={onClose} width="560px">
+      <div style={{background:"rgba(255,255,255,.03)",borderRadius:"8px",padding:"0.8rem",marginBottom:"1rem",border:"1px solid var(--border)"}}>
+        <pre style={{fontSize:"0.74rem",color:"var(--text-mid)",whiteSpace:"pre-wrap",lineHeight:1.65,fontFamily:"inherit"}}>{msg}</pre>
+      </div>
+      <div style={{display:"flex",gap:"0.5rem",flexWrap:"wrap"}}>
+        <button onClick={copiar} style={btnSecondary}>ð Copiar</button>
+        {tipo==="whatsapp" ? (
+          <button onClick={enviarWhatsApp} style={{...btnPrimary,background:"linear-gradient(135deg,#25d366,#128c7e)"}}>Abrir WhatsApp</button>
+        ) : (
+          <button onClick={enviarEmail} style={{...btnPrimary,background:"linear-gradient(135deg,var(--info),#1d4ed8)"}}>Abrir Email</button>
+        )}
+      </div>
+    </Modal>
+  );
+}
+
+// âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// CONFIGURAÃÃES
+// âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+function Configuracoes() {
+  const [config, setConfig] = useState(()=>Storage.get("config",{pixKey:"rafaelfreitassadv@gmail.com",telefone:"",anthropicKey:""}));
+  const upd = (k,v) => { const n={...config,[k]:v}; setConfig(n); Storage.set("config",n); };
+
+  const limparDados = () => {
+    if(confirm("Tem certeza? Isso apagarÃ¡ TODAS as tarefas e cobranÃ§as. Os processos do DataJud nÃ£o serÃ£o afetados.")) {
+      Storage.remove("tarefas"); Storage.remove("cobrancas");
+      location.reload();
+    }
+  };
+  const exportarDados = () => {
+    const dados = {tarefas:Storage.get("tarefas",[]),cobrancas:Storage.get("cobrancas",[]),config:Storage.get("config",{}),exportadoEm:new Date().toISOString()};
+    const blob = new Blob([JSON.stringify(dados,null,2)],{type:"application/json"});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a"); a.href=url; a.download=`lexia_backup_${new Date().toISOString().slice(0,10)}.json`; a.click();
+    URL.revokeObjectURL(url);
+  };
+  const importarDados = (e) => {
+    const file = e.target.files[0]; if(!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      try {
+        const dados = JSON.parse(ev.target.result);
+        if(dados.tarefas) Storage.set("tarefas",dados.tarefas);
+        if(dados.cobrancas) Storage.set("cobrancas",dados.cobrancas);
+        if(dados.config) Storage.set("config",dados.config);
+        alert("Dados importados com sucesso!"); location.reload();
+      } catch { alert("Arquivo invÃ¡lido."); }
+    };
+    reader.readAsText(file);
+  };
+
+  return (
+    <div className="fade-in">
+      <h2 style={{fontSize:"1.1rem",marginBottom:"1.2rem"}}>ConfiguraÃ§Ãµes</h2>
+
+      <div style={{display:"flex",flexDirection:"column",gap:"1.2rem"}}>
+        <div style={{background:"rgba(255,255,255,.03)",border:"1px solid var(--border)",borderRadius:"12px",padding:"1.2rem"}}>
+          <h3 style={{fontSize:"0.82rem",color:"var(--gold)",marginBottom:"0.8rem"}}>Dados do EscritÃ³rio</h3>
+          <div style={{display:"flex",flexDirection:"column",gap:"0.7rem"}}>
+            <div><label style={labelStyle}>Chave Pix (para cobranÃ§as)</label><input value={config.pixKey||""} onChange={e=>upd("pixKey",e.target.value)} style={inputStyle}/></div>
+            <div><label style={labelStyle}>Telefone WhatsApp do escritÃ³rio</label><input value={config.telefone||""} onChange={e=>upd("telefone",e.target.value)} style={inputStyle} placeholder="85999999999"/></div>
+          </div>
+        </div>
+
+        <div style={{background:"rgba(255,255,255,.03)",border:"1px solid var(--border)",borderRadius:"12px",padding:"1.2rem"}}>
+          <h3 style={{fontSize:"0.82rem",color:"var(--gold)",marginBottom:"0.8rem"}}>API Keys</h3>
+          <div style={{display:"flex",flexDirection:"column",gap:"0.7rem"}}>
+            <div><label style={labelStyle}>Anthropic API Key (para anÃ¡lise IA)</label><input type="password" value={config.anthropicKey||""} onChange={e=>upd("anthropicKey",e.target.value)} style={inputStyle} placeholder="sk-ant-..."/></div>
+            <p style={{fontSize:"0.68rem",color:"var(--text-dim)"}}>NecessÃ¡ria apenas para o recurso de anÃ¡lise de movimentaÃ§Ãµes com IA. A chave DataJud jÃ¡ estÃ¡ embutida.</p>
+          </div>
+        </div>
+
+        <div style={{background:"rgba(255,255,255,.03)",border:"1px solid var(--border)",borderRadius:"12px",padding:"1.2rem"}}>
+          <h3 style={{fontSize:"0.82rem",color:"var(--gold)",marginBottom:"0.8rem"}}>Backup & Dados</h3>
+          <div style={{display:"flex",gap:"0.5rem",flexWrap:"wrap"}}>
+            <button onClick={exportarDados} style={btnSecondary}>ð¥ Exportar Backup</button>
+            <label style={{...btnSecondary,display:"inline-flex",alignItems:"center"}}>ð¤ Importar<input type="file" accept=".json" onChange={importarDados} style={{display:"none"}}/></label>
+            <button onClick={limparDados} style={{...btnSecondary,color:"var(--danger)",borderColor:"rgba(239,68,68,.3)"}}>ðï¸ Limpar Tudo</button>
+          </div>
+          <p style={{fontSize:"0.66rem",color:"var(--text-dim)",marginTop:"0.6rem"}}>Os dados sÃ£o salvos no navegador (localStorage). FaÃ§a backup regularmente.</p>
+        </div>
+
+        <div style={{background:"var(--gold-bg)",border:"1px solid rgba(212,175,55,.18)",borderRadius:"12px",padding:"1.2rem"}}>
+          <h3 style={{fontSize:"0.82rem",color:"var(--gold)",marginBottom:"0.5rem"}}>Deploy no GitHub Pages</h3>
+          <ol style={{fontSize:"0.74rem",color:"var(--text-mid)",lineHeight:1.8,paddingLeft:"1.2rem"}}>
+            <li>Crie um repositÃ³rio no GitHub (ex: <code style={{color:"var(--gold)"}}>lexia</code>)</li>
+            <li>FaÃ§a upload deste arquivo <code style={{color:"var(--gold)"}}>index.html</code></li>
+            <li>VÃ¡ em Settings â Pages â Source: "main" / root</li>
+            <li>Acesse em: <code style={{color:"var(--gold)"}}>seuusuario.github.io/lexia</code></li>
+          </ol>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// DASHBOARD (HOME)
+// âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+function Dashboard({ setPage }) {
+  const tarefas = Storage.get("tarefas",[]);
+  const cobrancas = Storage.get("cobrancas",[]);
+  const tarefasVencidas = tarefas.filter(t=>t.status!=="concluida"&&isOverdue(t.prazo));
+  const tarefasHoje = tarefas.filter(t=>t.status!=="concluida"&&isToday(t.prazo));
+  const cobrancasVencidas = cobrancas.filter(c=>c.status==="pendente"&&isOverdue(c.vencimento));
+  const totalReceber = cobrancas.filter(c=>c.status==="pendente").reduce((s,c)=>s+(parseFloat(c.valor)||0),0);
+
+  const alertas = [...tarefasVencidas.map(t=>({tipo:"tarefa",msg:`Tarefa vencida: ${t.titulo}`,cor:"var(--danger)"})),...cobrancasVencidas.map(c=>({tipo:"cobranca",msg:`CobranÃ§a vencida: ${c.clienteNome} â ${formatCurrency(c.valor)}`,cor:"var(--danger)"})),...tarefasHoje.map(t=>({tipo:"tarefa",msg:`Vence hoje: ${t.titulo}`,cor:"var(--warning)"}))];
+
+  return (
+    <div className="fade-in">
+      <div style={{marginBottom:"1.5rem"}}>
+        <h2 style={{fontSize:"1.2rem"}}>Bom dia, Dr. Rafael</h2>
+        <p style={{fontSize:"0.76rem",color:"var(--text-dim)",marginTop:"0.2rem"}}>{new Date().toLocaleDateString("pt-BR",{weekday:"long",day:"numeric",month:"long",year:"numeric"})}</p>
+      </div>
+
+      {alertas.length>0&&(
+        <div style={{background:"rgba(239,68,68,.05)",border:"1px solid rgba(239,68,68,.2)",borderRadius:"12px",padding:"0.9rem 1rem",marginBottom:"1.2rem"}}>
+          <div style={{fontSize:"0.72rem",color:"var(--danger)",fontWeight:"600",marginBottom:"0.5rem"}}>ð {alertas.length} alerta(s)</div>
+          {alertas.slice(0,5).map((a,i)=><div key={i} style={{fontSize:"0.74rem",color:a.cor,marginBottom:"0.25rem"}}>â¢ {a.msg}</div>)}
+          {alertas.length>5&&<div style={{fontSize:"0.68rem",color:"var(--text-dim)",marginTop:"0.3rem"}}>+{alertas.length-5} mais...</div>}
+        </div>
+      )}
+
+      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(200px,1fr))",gap:"0.8rem",marginBottom:"1.5rem"}}>
+        <div onClick={()=>setPage("processos")} style={{background:"rgba(255,255,255,.03)",border:"1px solid var(--border)",borderRadius:"12px",padding:"1.2rem",cursor:"pointer",transition:"border-color .2s"}}>
+          <div style={{color:"var(--info)",marginBottom:"0.4rem"}}>{Icons.processos}</div>
+          <div style={{fontSize:"1.6rem",fontWeight:"bold",color:"var(--info)"}}>{PROCESSOS_CONFIG.length}</div>
+          <div style={{fontSize:"0.68rem",color:"var(--text-dim)",marginTop:"0.1rem"}}>Processos ativos</div>
+        </div>
+        <div onClick={()=>setPage("tarefas")} style={{background:"rgba(255,255,255,.03)",border:"1px solid var(--border)",borderRadius:"12px",padding:"1.2rem",cursor:"pointer"}}>
+          <div style={{color:"var(--gold)",marginBottom:"0.4rem"}}>{Icons.tarefas}</div>
+          <div style={{fontSize:"1.6rem",fontWeight:"bold",color:"var(--gold)"}}>{tarefas.filter(t=>t.status!=="concluida").length}</div>
+          <div style={{fontSize:"0.68rem",color:"var(--text-dim)",marginTop:"0.1rem"}}>Tarefas pendentes</div>
+        </div>
+        <div onClick={()=>setPage("financeiro")} style={{background:"rgba(255,255,255,.03)",border:"1px solid var(--border)",borderRadius:"12px",padding:"1.2rem",cursor:"pointer"}}>
+          <div style={{color:"var(--success)",marginBottom:"0.4rem"}}>{Icons.financeiro}</div>
+          <div style={{fontSize:"1.6rem",fontWeight:"bold",color:"var(--success)"}}>{formatCurrency(totalReceber)}</div>
+          <div style={{fontSize:"0.68rem",color:"var(--text-dim)",marginTop:"0.1rem"}}>A receber</div>
+        </div>
+      </div>
+
+      {/* PrÃ³ximas tarefas */}
+      <div style={{background:"rgba(255,255,255,.03)",border:"1px solid var(--border)",borderRadius:"12px",padding:"1rem",marginBottom:"1rem"}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"0.7rem"}}>
+          <h3 style={{fontSize:"0.82rem",color:"var(--gold)"}}>PrÃ³ximas Tarefas</h3>
+          <button onClick={()=>setPage("tarefas")} style={{background:"none",border:"none",color:"var(--text-dim)",fontSize:"0.7rem",cursor:"pointer"}}>Ver todas â</button>
+        </div>
+        {tarefas.filter(t=>t.status!=="concluida").slice(0,4).map(t=>(
+          <div key={t.id} style={{display:"flex",justifyContent:"space-between",padding:"0.4rem 0",borderBottom:"1px solid var(--border)",fontSize:"0.76rem"}}>
+            <span style={{color:"var(--text)"}}>{t.titulo}</span>
+            <span style={{color:isOverdue(t.prazo)?"var(--danger)":"var(--text-dim)",fontSize:"0.68rem"}}>{t.prazo?formatDate(t.prazo):"sem prazo"}</span>
+          </div>
+        ))}
+        {tarefas.filter(t=>t.status!=="concluida").length===0&&<p style={{fontSize:"0.74rem",color:"var(--text-dim)"}}>Nenhuma tarefa pendente</p>}
+      </div>
+    </div>
+  );
+}
+
+// âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// APP PRINCIPAL
+// âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+function App() {
+  const [page, setPage] = useState("dashboard");
+  const [menuOpen, setMenuOpen] = useState(false);
+
+  const tarefas = Storage.get("tarefas",[]);
+  const cobrancas = Storage.get("cobrancas",[]);
+  const alertCount = tarefas.filter(t=>t.status!=="concluida"&&isOverdue(t.prazo)).length + cobrancas.filter(c=>c.status==="pendente"&&isOverdue(c.vencimento)).length;
+
+  const navItems = [
+    {id:"dashboard",label:"InÃ­cio",icon:"ð "},
+    {id:"processos",label:"Processos",icon:"ð"},
+    {id:"tarefas",label:"Tarefas",icon:"ð"},
+    {id:"financeiro",label:"Financeiro",icon:"ð°"},
+    {id:"config",label:"Config",icon:"âï¸"},
+  ];
+
+  return (
+    <div style={{display:"flex",minHeight:"100vh"}}>
+      {/* Sidebar Desktop */}
+      <aside style={{width:"220px",background:"rgba(5,10,25,.98)",borderRight:"1px solid var(--border)",padding:"1.2rem 0",display:"flex",flexDirection:"column",position:"fixed",top:0,left:0,bottom:0,zIndex:100}}>
+        <div style={{padding:"0 1rem",marginBottom:"1.5rem"}}>
+          <div style={{display:"flex",alignItems:"center",gap:"0.6rem"}}>
+            <div style={{width:"32px",height:"32px",borderRadius:"8px",background:"linear-gradient(135deg,var(--gold),#9a7d0a)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:"1rem"}}>âï¸</div>
+            <div>
+              <div style={{fontSize:"0.85rem",fontWeight:"600",color:"var(--text)"}}>Lexia</div>
+              <div style={{fontSize:"0.55rem",color:"var(--gold)",letterSpacing:"0.12em",textTransform:"uppercase"}}>OAB/CE 44.172</div>
+            </div>
+          </div>
+        </div>
+        <nav style={{flex:1}}>
+          {navItems.map(item=>(
+            <button key={item.id} onClick={()=>setPage(item.id)} style={{width:"100%",display:"flex",alignItems:"center",gap:"0.6rem",padding:"0.65rem 1.2rem",background:page===item.id?"var(--gold-bg)":"transparent",border:"none",borderLeft:page===item.id?"3px solid var(--gold)":"3px solid transparent",color:page===item.id?"var(--gold)":"var(--text-dim)",fontSize:"0.8rem",cursor:"pointer",textAlign:"left",transition:"all .15s",position:"relative"}}>
+              <span>{item.icon}</span>{item.label}
+              {item.id==="financeiro"&&alertCount>0&&<NotificationBadge count={alertCount}/>}
+            </button>
+          ))}
+        </nav>
+        <div style={{padding:"0 1rem",fontSize:"0.6rem",color:"var(--text-dim)",lineHeight:1.6}}>
+          Rafael Freitas Advocacia<br/>Fortaleza/CE
+        </div>
+      </aside>
+
+      {/* Mobile Header */}
+      <div className="mobile-header" style={{display:"none",position:"fixed",top:0,left:0,right:0,zIndex:200,background:"rgba(5,10,25,.98)",borderBottom:"1px solid var(--border)",padding:"0.7rem 1rem",alignItems:"center",justifyContent:"space-between",backdropFilter:"blur(10px)"}}>
+        <div style={{display:"flex",alignItems:"center",gap:"0.5rem"}}>
+          <div style={{width:"28px",height:"28px",borderRadius:"6px",background:"linear-gradient(135deg,var(--gold),#9a7d0a)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:"0.85rem"}}>âï¸</div>
+          <span style={{fontSize:"0.82rem",fontWeight:"600"}}>Lexia</span>
+        </div>
+        <button onClick={()=>setMenuOpen(!menuOpen)} style={{background:"none",border:"none",color:"var(--text)",padding:"4px",position:"relative"}}>
+          {menuOpen?Icons.close:Icons.menu}
+          {alertCount>0&&!menuOpen&&<NotificationBadge count={alertCount}/>}
+        </button>
+      </div>
+
+      {/* Mobile Nav Overlay */}
+      {menuOpen&&(
+        <div style={{position:"fixed",inset:0,zIndex:150,background:"rgba(5,10,25,.97)",paddingTop:"60px"}}>
+          {navItems.map(item=>(
+            <button key={item.id} onClick={()=>{setPage(item.id);setMenuOpen(false);}} style={{width:"100%",display:"flex",alignItems:"center",gap:"0.8rem",padding:"1rem 1.5rem",background:page===item.id?"var(--gold-bg)":"transparent",border:"none",color:page===item.id?"var(--gold)":"var(--text)",fontSize:"1rem",cursor:"pointer",textAlign:"left"}}>
+              <span style={{fontSize:"1.3rem"}}>{item.icon}</span>{item.label}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* Main Content */}
+      <main style={{flex:1,marginLeft:"220px",padding:"1.5rem",maxWidth:"900px"}}>
+        {page==="dashboard"&&<Dashboard setPage={setPage}/>}
+        {page==="processos"&&<MonitorProcessos/>}
+        {page==="tarefas"&&<GestaoTarefas/>}
+        {page==="financeiro"&&<ModuloFinanceiro/>}
+        {page==="config"&&<Configuracoes/>}
+      </main>
+
+      {/* Responsive CSS */}
+      <style>{`
+        @media(max-width:768px){
+          aside{display:none!important}
+          .mobile-header{display:flex!important}
+          main{margin-left:0!important;padding:1rem!important;padding-top:65px!important;max-width:100%!important}
+        }
+      `}</style>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+</script>
+</body>
+</html>
