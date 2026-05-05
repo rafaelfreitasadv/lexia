@@ -1,0 +1,180 @@
+{
+  "_origem": "Astrea (https://astrea.net.br)",
+  "_extraidoEm": "2026-05-05",
+  "_advogado": "Rafael Freitas Mariano de Oliveira — OAB/CE 44.172",
+  "_total": 19,
+  "_observacao": "Tarefas extraídas via DOM da Área de Trabalho do Astrea. Datas no formato ISO (YYYY-MM-DD). Status inicial 'pendente'. Prioridade inferida a partir da estrela (alta = vermelha) e da palavra 'URGENTE' no título. Use o botão 'Importar tarefas do Astrea' no módulo Tarefas do Lexia.",
+  "tarefas": [
+    {
+      "titulo": "EXECUÇÕES RYAN CONTAS",
+      "descricao": "Tarefa migrada do Astrea.",
+      "prazo": "2025-04-21",
+      "prioridade": "alta",
+      "status": "pendente",
+      "processoId": "",
+      "origemAstrea": true
+    },
+    {
+      "titulo": "CONFECCIONAR MINHA SOCIEDADE UNIPESSOAL DA ADVOCACIA",
+      "descricao": "Tarefa migrada do Astrea.",
+      "prazo": "2025-09-27",
+      "prioridade": "media",
+      "status": "pendente",
+      "processoId": "",
+      "origemAstrea": true
+    },
+    {
+      "titulo": "PROCESSO SABRINA INSS",
+      "descricao": "Tarefa migrada do Astrea.",
+      "prazo": "2026-01-05",
+      "prioridade": "alta",
+      "status": "pendente",
+      "processoId": "",
+      "origemAstrea": true
+    },
+    {
+      "titulo": "CADASTRAR ITCMD MARCIONILIA E MARIANA",
+      "descricao": "Tarefa migrada do Astrea.",
+      "prazo": "2026-01-08",
+      "prioridade": "alta",
+      "status": "pendente",
+      "processoId": "",
+      "origemAstrea": true
+    },
+    {
+      "titulo": "PEDIDO STJ CIMMAR",
+      "descricao": "Tarefa migrada do Astrea.",
+      "prazo": "2026-01-12",
+      "prioridade": "alta",
+      "status": "pendente",
+      "processoId": "",
+      "origemAstrea": true
+    },
+    {
+      "titulo": "PAGAR CARRO DO MEU PAI PRISMA E PAGAR CONSORCIO",
+      "descricao": "Tarefa migrada do Astrea.",
+      "prazo": "2026-01-26",
+      "prioridade": "alta",
+      "status": "pendente",
+      "processoId": "",
+      "origemAstrea": true
+    },
+    {
+      "titulo": "OLHAR BUSCA E APREENSÃO THALES HILUX — PEDIDO RESTITUIÇÃO MARCELO",
+      "descricao": "Tarefa migrada do Astrea.",
+      "prazo": "2026-02-04",
+      "prioridade": "media",
+      "status": "pendente",
+      "processoId": "",
+      "origemAstrea": true
+    },
+    {
+      "titulo": "VER PROCESSO TERRENO THIAGO LIMA DE FREITAS — URGENTE",
+      "descricao": "Tarefa migrada do Astrea.",
+      "prazo": "2026-02-10",
+      "prioridade": "alta",
+      "status": "pendente",
+      "processoId": "",
+      "origemAstrea": true
+    },
+    {
+      "titulo": "ENVIAR ATESTADOS E COMPROVANTES DA DOENÇA DO CIMAR PARA A UNIDADE PRISIONAL CPPL 2 — URGENTE",
+      "descricao": "Tarefa migrada do Astrea.",
+      "prazo": "2026-02-11",
+      "prioridade": "alta",
+      "status": "pendente",
+      "processoId": "",
+      "origemAstrea": true
+    },
+    {
+      "titulo": "Ver débito carro pai PRISMA — URGENTE",
+      "descricao": "Tarefa migrada do Astrea.",
+      "prazo": "2026-02-21",
+      "prioridade": "alta",
+      "status": "pendente",
+      "processoId": "",
+      "origemAstrea": true
+    },
+    {
+      "titulo": "COBRAR HOMOLOGAÇÃO PROCESSOS THIAGO — 3001964-30.2025.8.06.0075 e 3001961-75.2025.8.06.0075",
+      "descricao": "Tarefa migrada do Astrea. Processos vinculados: 3001964-30.2025.8.06.0075 e 3001961-75.2025.8.06.0075.",
+      "prazo": "2026-02-23",
+      "prioridade": "alta",
+      "status": "pendente",
+      "processoId": "",
+      "origemAstrea": true
+    },
+    {
+      "titulo": "CONSULTA THIAGO / CONSULTA MARCELO / CONSULTA E RELATORIO PORTO PAI BUFFET",
+      "descricao": "Tarefa migrada do Astrea. Três consultas a realizar: Thiago, Marcelo e relatório Porto / Pai (Buffet).",
+      "prazo": "2026-02-25",
+      "prioridade": "alta",
+      "status": "pendente",
+      "processoId": "",
+      "origemAstrea": true
+    },
+    {
+      "titulo": "PROCESSO RENATA INSS APOSENTADORIA",
+      "descricao": "Tarefa migrada do Astrea.",
+      "prazo": "2026-03-20",
+      "prioridade": "alta",
+      "status": "pendente",
+      "processoId": "",
+      "origemAstrea": true
+    },
+    {
+      "titulo": "ASSINAR PEDIDO CIMAR STJ",
+      "descricao": "Tarefa migrada do Astrea.",
+      "prazo": "2026-03-31",
+      "prioridade": "alta",
+      "status": "pendente",
+      "processoId": "",
+      "origemAstrea": true
+    },
+    {
+      "titulo": "RECORRER DAS MINHAS MULTAS",
+      "descricao": "Tarefa migrada do Astrea.",
+      "prazo": "2026-03-31",
+      "prioridade": "media",
+      "status": "pendente",
+      "processoId": "",
+      "origemAstrea": true
+    },
+    {
+      "titulo": "Ler decisão Magna e juntar contrato",
+      "descricao": "Tarefa migrada do Astrea.",
+      "prazo": "2026-04-16",
+      "prioridade": "alta",
+      "status": "pendente",
+      "processoId": "",
+      "origemAstrea": true
+    },
+    {
+      "titulo": "Ler decisão AMC e avisar a todos sobre sentença",
+      "descricao": "Tarefa migrada do Astrea.",
+      "prazo": "2026-04-16",
+      "prioridade": "alta",
+      "status": "pendente",
+      "processoId": "",
+      "origemAstrea": true
+    },
+    {
+      "titulo": "PROCESSO SAMUEL — FORD",
+      "descricao": "Tarefa migrada do Astrea.",
+      "prazo": "2026-04-17",
+      "prioridade": "alta",
+      "status": "pendente",
+      "processoId": "",
+      "origemAstrea": true
+    },
+    {
+      "titulo": "Processo Luana e processo BIG",
+      "descricao": "Tarefa migrada do Astrea.",
+      "prazo": "2026-04-17",
+      "prioridade": "alta",
+      "status": "pendente",
+      "processoId": "",
+      "origemAstrea": true
+    }
+  ]
+}

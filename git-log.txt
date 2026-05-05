@@ -1,0 +1,11 @@
+ 
+rm 'desktop.ini'
+error: the following file has staged content different from both the
+file and the HEAD:
+    git-log.txt
+(use -f to force removal)
+rm 'kill-git.bat'
+--- git config validacao --- 
+Rafael Freitas
+rafaelfreitassadv@gmail.com
+--- git add --- 
